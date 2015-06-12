@@ -1,2 +1,2 @@
-# blobstore-util
-Util functions and abstract functions that can be used by every blobstore implementations
+# blobstore-cache
+Cached implementation of Blobstore that can wrap another Blobstore implementation and provide content from cache.
