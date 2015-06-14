@@ -32,8 +32,9 @@ class CachedBlobAccessorImpl<T_CHANNEL extends BlobAccessor> extends
 
   private Long newVersion;
 
-  public CachedBlobAccessorImpl(final T_CHANNEL wrapped, final Map<List<Byte>, byte[]> cache) {
-    super(wrapped, cache);
+  public CachedBlobAccessorImpl(final long blobId, final T_CHANNEL wrapped,
+      final Map<List<Byte>, byte[]> cache) {
+    super(blobId, wrapped, cache);
   }
 
   @Override
@@ -47,9 +48,7 @@ class CachedBlobAccessorImpl<T_CHANNEL extends BlobAccessor> extends
   @Override
   public void truncate(final long len) {
     wrapped.truncate(len);
-    size = len;
-    // TODO Handle cache
-
+    getSizeAndVersion().size = len;
   }
 
   @Override

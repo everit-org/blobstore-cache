@@ -50,7 +50,7 @@ public class CachedBlobstore implements Blobstore {
   @Override
   public void deleteBlob(final long blobId) {
     wrapped.deleteBlob(blobId);
-    cache.remove(Arrays.asList(BlobstoreCacheUtil.encodeLongsTo7BitByteArray(blobId, 0)));
+    cache.remove(Arrays.asList(Codec7BitUtil.encodeLongsTo7BitByteArray(blobId, 0)));
   }
 
   Blobstore getWrapped() {
@@ -61,8 +61,8 @@ public class CachedBlobstore implements Blobstore {
   public void readBlob(final long blobId, final Consumer<BlobReader> readingAction) {
     transactionHelper.required(() -> {
       wrapped.readBlob(blobId,
-          (blobReader -> readingAction.accept(new CachedBlobReaderImpl<BlobReader>(blobReader,
-              cache))));
+          (blobReader -> readingAction.accept(new CachedBlobReaderImpl<BlobReader>(blobId,
+              blobReader, cache))));
       return null;
     });
 
@@ -76,7 +76,7 @@ public class CachedBlobstore implements Blobstore {
   public void updateBlob(final long blobId, final Consumer<BlobAccessor> updatingAction) {
     transactionHelper.required(() -> {
       wrapped.updateBlob(blobId, (blobAccessor -> updatingAction
-          .accept(new CachedBlobAccessorImpl<BlobAccessor>(blobAccessor, cache))));
+          .accept(new CachedBlobAccessorImpl<BlobAccessor>(blobId, blobAccessor, cache))));
       return null;
     });
   }
