@@ -15,6 +15,10 @@
  */
 package org.everit.blobstore.cache;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Util methods for Blobstore Cache storage.
  */
@@ -112,6 +116,34 @@ public final class Codec7BitUtil {
       }
       return trimmedResult;
     }
+  }
+
+  /**
+   * <p>
+   * Converts an array of primitive bytes to a List. It is important to use a {@link List} instead
+   * of byte[] where {@link Object#equals(Object)} and {@link Object#hashCode()} functions are used
+   * for comparison (e.g.: for cache keys).
+   * </p>
+   *
+   * <p>
+   * This method returns <code>null</code> for a <code>null</code> input array.
+   * </p>
+   *
+   * @param array
+   *          a <code>byte</code> array
+   * @return a <code>Byte</code> array, <code>null</code> if null array input
+   */
+  public static List<Byte> toUnmodifiableList(final byte[] array) {
+    if (array == null) {
+      return null;
+    } else if (array.length == 0) {
+      return Collections.emptyList();
+    }
+    final List<Byte> result = new ArrayList<Byte>(array.length);
+    for (byte element : array) {
+      result.add(element);
+    }
+    return Collections.unmodifiableList(result);
   }
 
   private Codec7BitUtil() {
