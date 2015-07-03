@@ -23,7 +23,9 @@ import java.util.function.Consumer;
 import org.everit.blobstore.api.BlobAccessor;
 import org.everit.blobstore.api.BlobReader;
 import org.everit.blobstore.api.Blobstore;
-import org.everit.blobstore.cache.CachedBlobReaderImpl.BlobCacheHeadValue;
+import org.everit.blobstore.cache.internal.BlobCacheHeadValue;
+import org.everit.blobstore.cache.internal.CachedBlobReaderImpl;
+import org.everit.blobstore.cache.internal.Codec7BitUtil;
 import org.everit.osgi.transaction.helper.api.TransactionHelper;
 
 /**
@@ -36,7 +38,7 @@ public class CachedBlobstore implements Blobstore {
 
   private final int defaultChunkSize;
 
-  private TransactionHelper transactionHelper;
+  private final TransactionHelper transactionHelper;
 
   private final Blobstore wrapped;
 
@@ -51,10 +53,11 @@ public class CachedBlobstore implements Blobstore {
    *          The default chunk size that the {@link Blobstore} will use to store the data in cache.
    */
   public CachedBlobstore(final Blobstore wrapped, final Map<List<Byte>, byte[]> cache,
-      final int defaultChunkSize) {
+      final int defaultChunkSize, final TransactionHelper transactionHelper) {
     this.wrapped = wrapped;
     this.cache = cache;
     this.defaultChunkSize = defaultChunkSize;
+    this.transactionHelper = transactionHelper;
   }
 
   @Override
@@ -104,24 +107,13 @@ public class CachedBlobstore implements Blobstore {
     }
   }
 
-  Blobstore getWrapped() {
-    return wrapped;
-  }
-
   @Override
   public void readBlob(final long blobId, final Consumer<BlobReader> readingAction) {
     BlobCacheHeadValue sizeVersionAndChunkSize = getBlobHeadValue(blobId);
-    transactionHelper.required(() -> {
-      wrapped.readBlob(blobId,
-          (blobReader -> readingAction.accept(new CachedBlobReaderImpl<BlobReader>(blobId,
-              blobReader, cache, sizeVersionAndChunkSize))));
-      return null;
-    });
 
-  }
-
-  public void setTransactionHelper(final TransactionHelper transactionHelper) {
-    this.transactionHelper = transactionHelper;
+    wrapped.readBlob(blobId,
+        (blobReader -> readingAction.accept(new CachedBlobReaderImpl<BlobReader>(blobId,
+            blobReader, cache, sizeVersionAndChunkSize))));
   }
 
   @Override
@@ -131,9 +123,15 @@ public class CachedBlobstore implements Blobstore {
         updatingAction.accept(blobAccessor);
         long newVersion = blobAccessor.newVersion();
 
+        List<Byte> blobHeadCacheId =
+            Codec7BitUtil.toUnmodifiableList(Codec7BitUtil.encodeLongsTo7BitByteArray(blobId));
+
+        // Remove must be called as in case of invalidation cache, the other nodes must be notified
+        cache.remove(blobHeadCacheId);
         cache.put(
-            Codec7BitUtil.toUnmodifiableList(Codec7BitUtil.encodeLongsTo7BitByteArray(blobId)),
-            Codec7BitUtil.encodeLongsTo7BitByteArray(newVersion, blobAccessor.size()));
+            blobHeadCacheId,
+            Codec7BitUtil.encodeLongsTo7BitByteArray(newVersion, blobAccessor.size(),
+                defaultChunkSize));
       });
       return null;
     });

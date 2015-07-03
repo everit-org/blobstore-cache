@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.everit.blobstore.cache;
+package org.everit.blobstore.cache.internal;
 
 import java.util.List;
 import java.util.Map;
@@ -27,18 +27,7 @@ import org.everit.blobstore.api.BlobReader;
  * @param <T_CHANNEL>
  *          The actual type of the wrapped <code>BLOB</code> channel.
  */
-class CachedBlobReaderImpl<T_CHANNEL extends BlobReader> implements BlobReader {
-
-  /**
-   * Holder class for Blob metadata that is stored in the chunk with index zero in the cache.
-   */
-  protected static class BlobCacheHeadValue {
-    public int chunkSize;
-
-    public long size;
-
-    public long version;
-  }
+public class CachedBlobReaderImpl<T_CHANNEL extends BlobReader> implements BlobReader {
 
   protected final long blobId;
 
@@ -97,7 +86,7 @@ class CachedBlobReaderImpl<T_CHANNEL extends BlobReader> implements BlobReader {
 
     long calculatedLen = size() - position;
     if (len < calculatedLen) {
-      calculatedLen = 0;
+      calculatedLen = len;
     }
 
     if (calculatedLen == 0) {
@@ -108,12 +97,15 @@ class CachedBlobReaderImpl<T_CHANNEL extends BlobReader> implements BlobReader {
   }
 
   protected byte[] readChunkFromWrapped() {
-    long wrappedPosition = wrapped.position();
-    if (wrappedPosition != position) {
-      wrapped.seek(position);
-    }
+
     int currentChunkSize = sizeVersionAndChunkSize.chunkSize;
-    long remainingLenOfBlob = size() - position;
+    long chunkStartPosition = (position / currentChunkSize) * currentChunkSize;
+    long wrappedPosition = wrapped.position();
+    if (wrappedPosition != chunkStartPosition) {
+      wrapped.seek(chunkStartPosition);
+    }
+
+    long remainingLenOfBlob = size() - chunkStartPosition;
     if (currentChunkSize > remainingLenOfBlob) {
       currentChunkSize = (int) remainingLenOfBlob;
     }
@@ -128,7 +120,7 @@ class CachedBlobReaderImpl<T_CHANNEL extends BlobReader> implements BlobReader {
       off += r;
     }
 
-    return null;
+    return buffer;
   }
 
   protected int readInternal(final byte[] buffer, final int off, final int calculatedLen) {
@@ -142,7 +134,7 @@ class CachedBlobReaderImpl<T_CHANNEL extends BlobReader> implements BlobReader {
       }
       int chunkOffset = (int) (position % sizeVersionAndChunkSize.chunkSize);
       int readLength = chunk.length - chunkOffset;
-      if (readLength < remainingLen) {
+      if (readLength > remainingLen) {
         readLength = remainingLen;
       }
       System.arraycopy(chunk, chunkOffset, buffer, currentBufferOffset, readLength);
