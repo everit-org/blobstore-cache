@@ -44,11 +44,9 @@ public class CachedBlobstoreTest extends AbstractBlobstoreTest {
 
   @Override
   protected Blobstore getBlobStore() {
-    TransactionHelperImpl transactionHelper = new TransactionHelperImpl();
-    transactionHelper.setTransactionManager(transactionManager);
     return new CachedBlobstore(new MemBlobstore(transactionManager),
         new ManagedMap<>(new ReadCommitedTransactionalMap<>(null), transactionManager), 1024,
-        transactionHelper);
+        transactionManager);
   }
 
   @Override

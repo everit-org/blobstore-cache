@@ -15,18 +15,19 @@
  */
 package org.everit.blobstore.cache;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+
+import javax.transaction.Status;
+import javax.transaction.SystemException;
+import javax.transaction.TransactionManager;
 
 import org.everit.blobstore.api.BlobAccessor;
 import org.everit.blobstore.api.BlobReader;
 import org.everit.blobstore.api.Blobstore;
-import org.everit.blobstore.cache.internal.BlobCacheHeadValue;
 import org.everit.blobstore.cache.internal.CachedBlobReaderImpl;
 import org.everit.blobstore.cache.internal.Codec7BitUtil;
-import org.everit.osgi.transaction.helper.api.TransactionHelper;
+import org.everit.transaction.unchecked.UncheckedSystemException;
 
 /**
  * Wrapper class for Blobstore implementations that use caching in a Map. In case no cache is set
@@ -38,7 +39,7 @@ public class CachedBlobstore implements Blobstore {
 
   private final int defaultChunkSize;
 
-  private final TransactionHelper transactionHelper;
+  private final TransactionManager transactionManager;
 
   private final Blobstore wrapped;
 
@@ -53,88 +54,58 @@ public class CachedBlobstore implements Blobstore {
    *          The default chunk size that the {@link Blobstore} will use to store the data in cache.
    */
   public CachedBlobstore(final Blobstore wrapped, final Map<List<Byte>, byte[]> cache,
-      final int defaultChunkSize, final TransactionHelper transactionHelper) {
+      final int defaultChunkSize, final TransactionManager transactionManager) {
     this.wrapped = wrapped;
     this.cache = cache;
     this.defaultChunkSize = defaultChunkSize;
-    this.transactionHelper = transactionHelper;
+    this.transactionManager = transactionManager;
+  }
+
+  private void checkActiveTransaction() {
+    try {
+      int status = transactionManager.getStatus();
+      if (status != Status.STATUS_ACTIVE) {
+        throw new IllegalStateException("Blobs can be accessed only in active transaction");
+      }
+    } catch (SystemException e) {
+      throw new UncheckedSystemException(e);
+    }
+
   }
 
   @Override
-  public long createBlob(final Consumer<BlobAccessor> createAction) {
-    return wrapped.createBlob(createAction);
+  public BlobAccessor createBlob() {
+    return wrapped.createBlob();
   }
 
   @Override
   public void deleteBlob(final long blobId) {
     wrapped.deleteBlob(blobId);
-    cache.remove(Arrays.asList(Codec7BitUtil.encodeLongsTo7BitByteArray(blobId, 0)));
-  }
-
-  /**
-   * Retrieves the size and version information of the <code>BLOB</code> from the first place it
-   * finds: member variable, cache, wrapped reader. The retrieved information might be modified by a
-   * subclass that reduces or extends the size of the <code>BLOB</code>.
-   *
-   * @return The size and version information of the <code>BLOB</code>.
-   */
-  protected BlobCacheHeadValue getBlobHeadValue(final long blobId) {
-    List<Byte> cacheHeadId = Codec7BitUtil.toUnmodifiableList(Codec7BitUtil
-        .encodeLongsTo7BitByteArray(blobId));
-
-    byte[] head = cache.get(cacheHeadId);
-    if (head != null) {
-      long[] longs = Codec7BitUtil.decode7BitToLongs(head);
-      BlobCacheHeadValue blobCacheHead = new BlobCacheHeadValue();
-      blobCacheHead.version = longs[0];
-      blobCacheHead.size = longs[1];
-      blobCacheHead.chunkSize = (int) longs[2];
-      return blobCacheHead;
-    } else {
-      return transactionHelper.requiresNew(() -> {
-        BlobCacheHeadValue blobCacheHead = new BlobCacheHeadValue();
-        wrapped.updateBlob(blobId, (blobAccessor) -> {
-          blobCacheHead.size = blobAccessor.size();
-          blobCacheHead.version = blobAccessor.version();
-          blobCacheHead.chunkSize = defaultChunkSize;
-          cache.put(cacheHeadId, Codec7BitUtil.encodeLongsTo7BitByteArray(blobCacheHead.version,
-              blobCacheHead.size, defaultChunkSize));
-        });
-
-        return blobCacheHead;
-      });
-
-    }
+    cache.remove(
+        Codec7BitUtil.toUnmodifiableList(Codec7BitUtil.encodeLongsTo7BitByteArray(blobId, 0)));
   }
 
   @Override
-  public void readBlob(final long blobId, final Consumer<BlobReader> readingAction) {
-    BlobCacheHeadValue sizeVersionAndChunkSize = getBlobHeadValue(blobId);
-
-    wrapped.readBlob(blobId,
-        (blobReader -> readingAction.accept(new CachedBlobReaderImpl<BlobReader>(blobId,
-            blobReader, cache, sizeVersionAndChunkSize))));
+  public BlobReader readBlob(final long blobId) {
+    return new CachedBlobReaderImpl(blobId, wrapped, cache, transactionManager, defaultChunkSize);
   }
 
   @Override
-  public void updateBlob(final long blobId, final Consumer<BlobAccessor> updatingAction) {
-    transactionHelper.required(() -> {
-      wrapped.updateBlob(blobId, blobAccessor -> {
-        updatingAction.accept(blobAccessor);
-        long newVersion = blobAccessor.newVersion();
-
-        List<Byte> blobHeadCacheId =
-            Codec7BitUtil.toUnmodifiableList(Codec7BitUtil.encodeLongsTo7BitByteArray(blobId));
-
-        // Remove must be called as in case of invalidation cache, the other nodes must be notified
-        cache.remove(blobHeadCacheId);
-        cache.put(
-            blobHeadCacheId,
-            Codec7BitUtil.encodeLongsTo7BitByteArray(newVersion, blobAccessor.size(),
-                defaultChunkSize));
-      });
-      return null;
-    });
+  public BlobReader readBlobForUpdate(final long blobId) {
+    return wrapped.readBlobForUpdate(blobId);
   }
 
+  @Override
+  public BlobAccessor updateBlob(final long blobId) {
+    checkActiveTransaction();
+    BlobAccessor blobAccessor = wrapped.updateBlob(blobId);
+
+    List<Byte> blobHeadCacheId =
+        Codec7BitUtil.toUnmodifiableList(Codec7BitUtil.encodeLongsTo7BitByteArray(blobId));
+
+    // Remove must be called as in case of invalidation cache, the other nodes must be notified
+    cache.remove(blobHeadCacheId);
+    return blobAccessor;
+
+  }
 }
