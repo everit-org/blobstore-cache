@@ -25,6 +25,7 @@ import javax.transaction.TransactionManager;
 import org.everit.blobstore.api.BlobAccessor;
 import org.everit.blobstore.api.BlobReader;
 import org.everit.blobstore.api.Blobstore;
+import org.everit.blobstore.cache.internal.CacheUpdaterBlobAccessor;
 import org.everit.blobstore.cache.internal.CachedBlobReaderImpl;
 import org.everit.blobstore.cache.internal.Codec7BitUtil;
 import org.everit.transaction.unchecked.UncheckedSystemException;
@@ -80,6 +81,7 @@ public class CachedBlobstore implements Blobstore {
 
   @Override
   public void deleteBlob(final long blobId) {
+    checkActiveTransaction();
     wrapped.deleteBlob(blobId);
     cache.remove(
         Codec7BitUtil.toUnmodifiableList(Codec7BitUtil.encodeLongsTo7BitByteArray(blobId, 0)));
@@ -105,7 +107,8 @@ public class CachedBlobstore implements Blobstore {
 
     // Remove must be called as in case of invalidation cache, the other nodes must be notified
     cache.remove(blobHeadCacheId);
-    return blobAccessor;
+
+    return new CacheUpdaterBlobAccessor(blobAccessor, cache, defaultChunkSize);
 
   }
 }
