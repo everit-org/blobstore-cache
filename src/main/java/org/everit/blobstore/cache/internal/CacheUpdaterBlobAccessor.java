@@ -5,6 +5,10 @@ import java.util.Map;
 
 import org.everit.blobstore.api.BlobAccessor;
 
+/**
+ * Blob accessor that updates the cache during calling the close method.
+ *
+ */
 public class CacheUpdaterBlobAccessor implements BlobAccessor {
 
   private final Map<List<Byte>, byte[]> cache;
@@ -13,6 +17,16 @@ public class CacheUpdaterBlobAccessor implements BlobAccessor {
 
   private final BlobAccessor wrapped;
 
+  /**
+   * Constructor.
+   * 
+   * @param wrapped
+   *          The original blob accessor that is cached.
+   * @param cache
+   *          The cache.
+   * @param defaultChunkSize
+   *          The default chunk size that is used for this blob in the cache.
+   */
   public CacheUpdaterBlobAccessor(final BlobAccessor wrapped, final Map<List<Byte>, byte[]> cache,
       final int defaultChunkSize) {
     this.wrapped = wrapped;
@@ -25,8 +39,8 @@ public class CacheUpdaterBlobAccessor implements BlobAccessor {
     cache.put(
         Codec7BitUtil
             .toUnmodifiableList(Codec7BitUtil.encodeLongsTo7BitByteArray(wrapped.getBlobId())),
-        Codec7BitUtil.encodeLongsTo7BitByteArray(wrapped.newVersion(),
-            wrapped.size(), defaultChunkSize));
+        new BlobCacheHeadValue(wrapped.newVersion(), wrapped.size(), defaultChunkSize)
+            .toByteArray());
     wrapped.close();
   }
 

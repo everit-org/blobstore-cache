@@ -20,9 +20,47 @@ package org.everit.blobstore.cache.internal;
  */
 public class BlobCacheHeadValue {
 
+  /**
+   * Creates the {@link BlobCacheHeadValue} based on the format as it is stored in the cache.
+   *
+   * @param bytea
+   *          The cache representation of the head value.
+   * @return The {@link BlobCacheHeadValue} instance.
+   */
+  public static BlobCacheHeadValue fromByteArray(final byte[] bytea) {
+    long[] longs = Codec7BitUtil.decode7BitToLongs(bytea);
+    return new BlobCacheHeadValue(longs[0], longs[1], (int) longs[2]);
+  }
+
   public int chunkSize;
 
   public long size;
 
   public long version;
+
+  /**
+   * Constructor.
+   *
+   * @param version
+   *          The version of the blob.
+   * @param size
+   *          The size of the blob.
+   * @param chunkSize
+   *          The chunk size that is used for caching the blob.
+   */
+  public BlobCacheHeadValue(final long version, final long size, final int chunkSize) {
+    this.version = version;
+    this.size = size;
+    this.chunkSize = chunkSize;
+  }
+
+  /**
+   * Converts the blob head value into the format as it is stored in the cache.
+   *
+   * @return The byte array format of the blob head value.
+   */
+  public byte[] toByteArray() {
+    return Codec7BitUtil.encodeLongsTo7BitByteArray(version,
+        size, chunkSize);
+  }
 }

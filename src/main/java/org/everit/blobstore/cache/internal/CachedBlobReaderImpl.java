@@ -104,22 +104,14 @@ public class CachedBlobReaderImpl implements BlobReader {
 
     byte[] head = cache.get(cacheHeadId);
     if (head != null) {
-      long[] longs = Codec7BitUtil.decode7BitToLongs(head);
-      BlobCacheHeadValue blobCacheHead = new BlobCacheHeadValue();
-      blobCacheHead.version = longs[0];
-      blobCacheHead.size = longs[1];
-      blobCacheHead.chunkSize = (int) longs[2];
-      this.blobHeadValue = blobCacheHead;
+      this.blobHeadValue = BlobCacheHeadValue.fromByteArray(head);
     } else {
       transactionHelper.requiresNew(() -> {
         try (BlobReader blobReader = originalBlobstore.readBlobForUpdate(blobId)) {
-          BlobCacheHeadValue blobHead = new BlobCacheHeadValue();
+          BlobCacheHeadValue blobHead =
+              new BlobCacheHeadValue(blobReader.version(), blobReader.size(), defaultChunkSize);
 
-          blobHead.size = blobReader.size();
-          blobHead.version = blobReader.version();
-          blobHead.chunkSize = defaultChunkSize;
-          cache.put(cacheHeadId, Codec7BitUtil.encodeLongsTo7BitByteArray(blobHead.version,
-              blobHead.size, defaultChunkSize));
+          cache.put(cacheHeadId, blobHead.toByteArray());
 
           this.blobHeadValue = blobHead;
           return null;
@@ -134,6 +126,12 @@ public class CachedBlobReaderImpl implements BlobReader {
     return blobId;
   }
 
+  /**
+   * Returns the wrapped {@link BlobReader}. The wrapped reader is created the first time this
+   * method is called.
+   *
+   * @return The lazily created {@link BlobReader}.
+   */
   protected BlobReader getWrapped() {
     if (wrapped == null) {
       wrapped = originalBlobstore.readBlob(blobId);
@@ -169,6 +167,11 @@ public class CachedBlobReaderImpl implements BlobReader {
     return readInternal(buffer, off, (int) calculatedLen);
   }
 
+  /**
+   * Reads a chunk from the wrapped {@link BlobReader} as it could not be found in the cache.
+   *
+   * @return The chunk based on the current position from the wrapped reader.
+   */
   protected byte[] readChunkFromWrapped() {
     BlobReader lWrapped = getWrapped();
     BlobCacheHeadValue lBlobHeadValue = getBlobHeadValue();
@@ -202,6 +205,20 @@ public class CachedBlobReaderImpl implements BlobReader {
     return buffer;
   }
 
+  /**
+   * The functionality of {@link #read(byte[], int, int)} without with previously made range checks
+   * and exact length that can and should be read.
+   *
+   * @param buffer
+   *          The buffer to read into.
+   * @param off
+   *          The offset in the buffer to start the reading to.
+   * @param calculatedLen
+   *          The length that should be read. Exactly the specified length should be read, not less
+   *          and not more as checks were done previously.
+   * @return The amount of bytes that could have been read. This is always the same as calculatedLen
+   *         parameter in case of cached blobstore.
+   */
   protected int readInternal(final byte[] buffer, final int off, final int calculatedLen) {
     int remainingLen = calculatedLen;
     int currentBufferOffset = off;
