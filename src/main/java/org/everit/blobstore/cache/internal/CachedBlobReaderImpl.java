@@ -23,6 +23,7 @@ import javax.transaction.TransactionManager;
 
 import org.everit.blobstore.api.BlobReader;
 import org.everit.blobstore.api.Blobstore;
+import org.everit.blobstore.api.NoSuchBlobException;
 import org.everit.osgi.transaction.helper.api.TransactionHelper;
 import org.everit.osgi.transaction.helper.internal.TransactionHelperImpl;
 
@@ -72,6 +73,7 @@ public class CachedBlobReaderImpl implements BlobReader {
     TransactionHelperImpl transactionHelperImpl = new TransactionHelperImpl();
     transactionHelperImpl.setTransactionManager(transactionManager);
     this.transactionHelper = transactionHelperImpl;
+    this.blobHeadValue = getBlobHeadValue();
   }
 
   private List<Byte> calculateChunkId() {
@@ -134,7 +136,13 @@ public class CachedBlobReaderImpl implements BlobReader {
    */
   protected BlobReader getWrapped() {
     if (wrapped == null) {
-      wrapped = originalBlobstore.readBlob(blobId);
+      try {
+        wrapped = originalBlobstore.readBlob(blobId);
+      } catch (NoSuchBlobException e) {
+        throw new ConcurrentModificationException(
+            "Blob " + blobId + " has been deleted since it was opened for read in CacheBlobstore",
+            e);
+      }
     }
     return wrapped;
   }

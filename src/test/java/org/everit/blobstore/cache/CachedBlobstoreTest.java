@@ -22,12 +22,15 @@ import org.apache.geronimo.transaction.manager.GeronimoTransactionManager;
 import org.everit.blobstore.api.Blobstore;
 import org.everit.blobstore.mem.MemBlobstore;
 import org.everit.blobstore.testbase.AbstractBlobstoreTest;
+import org.everit.blobstore.testbase.CallableStressTester;
+import org.everit.blobstore.testbase.CallableStressTester.CallableStressTestConfiguration;
 import org.everit.osgi.transaction.helper.api.TransactionHelper;
 import org.everit.osgi.transaction.helper.internal.TransactionHelperImpl;
 import org.everit.transaction.map.managed.ManagedMap;
 import org.everit.transaction.map.readcommited.ReadCommitedTransactionalMap;
 import org.everit.transaction.unchecked.xa.UncheckedXAException;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class CachedBlobstoreTest extends AbstractBlobstoreTest {
 
@@ -54,6 +57,21 @@ public class CachedBlobstoreTest extends AbstractBlobstoreTest {
     TransactionHelperImpl transactionHelperImpl = new TransactionHelperImpl();
     transactionHelperImpl.setTransactionManager(transactionManager);
     return transactionHelperImpl;
+  }
+
+  @Test
+  public void testConsistency() {
+    Blobstore cachedBlobstore = new CachedBlobstore(new MemBlobstore(transactionManager),
+        new ManagedMap<>(new ReadCommitedTransactionalMap<>(null), transactionManager), 1024,
+        transactionManager);
+
+    Blobstore memBlobstore = new MemBlobstore(transactionManager);
+
+    TransactionHelperImpl transactionHelper = new TransactionHelperImpl();
+    transactionHelper.setTransactionManager(transactionManager);
+
+    CallableStressTester.runStressTest(new CallableStressTestConfiguration(), transactionHelper,
+        cachedBlobstore, memBlobstore);
   }
 
 }
