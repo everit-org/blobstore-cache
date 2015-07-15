@@ -22,8 +22,8 @@ import org.apache.geronimo.transaction.manager.GeronimoTransactionManager;
 import org.everit.blobstore.api.Blobstore;
 import org.everit.blobstore.mem.MemBlobstore;
 import org.everit.blobstore.testbase.AbstractBlobstoreTest;
-import org.everit.blobstore.testbase.CallableStressTester;
-import org.everit.blobstore.testbase.CallableStressTester.CallableStressTestConfiguration;
+import org.everit.blobstore.testbase.BlobstoreStressAndConsistencyTester;
+import org.everit.blobstore.testbase.BlobstoreStressAndConsistencyTester.BlobstoreStressTestConfiguration;
 import org.everit.osgi.transaction.helper.api.TransactionHelper;
 import org.everit.osgi.transaction.helper.internal.TransactionHelperImpl;
 import org.everit.transaction.map.managed.ManagedMap;
@@ -70,7 +70,7 @@ public class CachedBlobstoreTest extends AbstractBlobstoreTest {
     TransactionHelperImpl transactionHelper = new TransactionHelperImpl();
     transactionHelper.setTransactionManager(transactionManager);
 
-    CallableStressTester.runStressTest(new CallableStressTestConfiguration(), transactionHelper,
+    BlobstoreStressAndConsistencyTester.runStressTest(new BlobstoreStressTestConfiguration(), transactionHelper,
         cachedBlobstore, memBlobstore);
   }
 
