@@ -235,6 +235,7 @@ public class CachedBlobReaderImpl implements BlobReader {
       byte[] chunk = cache.get(chunkId);
       if (chunk == null) {
         chunk = readChunkFromWrapped();
+        cache.put(chunkId, chunk);
       }
       int chunkOffset = (int) (position % getBlobHeadValue().chunkSize);
       int readLength = chunk.length - chunkOffset;
