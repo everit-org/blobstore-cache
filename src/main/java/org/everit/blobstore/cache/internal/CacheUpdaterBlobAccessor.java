@@ -39,7 +39,7 @@ public class CacheUpdaterBlobAccessor implements BlobAccessor {
     cache.put(
         Codec7BitUtil
             .toUnmodifiableList(Codec7BitUtil.encodeLongsTo7BitByteArray(wrapped.getBlobId())),
-        new BlobCacheHeadValue(wrapped.newVersion(), wrapped.size(), defaultChunkSize)
+        new BlobCacheHeadValue(wrapped.getNewVersion(), wrapped.getSize(), defaultChunkSize)
             .toByteArray());
     wrapped.close();
   }
@@ -50,13 +50,13 @@ public class CacheUpdaterBlobAccessor implements BlobAccessor {
   }
 
   @Override
-  public long newVersion() {
-    return wrapped.newVersion();
+  public long getNewVersion() {
+    return wrapped.getNewVersion();
   }
 
   @Override
-  public long position() {
-    return wrapped.position();
+  public long getPosition() {
+    return wrapped.getPosition();
   }
 
   @Override
@@ -70,8 +70,8 @@ public class CacheUpdaterBlobAccessor implements BlobAccessor {
   }
 
   @Override
-  public long size() {
-    return wrapped.size();
+  public long getSize() {
+    return wrapped.getSize();
   }
 
   @Override
@@ -80,8 +80,8 @@ public class CacheUpdaterBlobAccessor implements BlobAccessor {
   }
 
   @Override
-  public long version() {
-    return wrapped.version();
+  public long getVersion() {
+    return wrapped.getVersion();
   }
 
   @Override

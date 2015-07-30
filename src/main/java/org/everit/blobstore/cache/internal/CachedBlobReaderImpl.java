@@ -111,7 +111,7 @@ public class CachedBlobReaderImpl implements BlobReader {
       transactionHelper.requiresNew(() -> {
         try (BlobReader blobReader = originalBlobstore.readBlobForUpdate(blobId)) {
           BlobCacheHeadValue blobHead =
-              new BlobCacheHeadValue(blobReader.version(), blobReader.size(), defaultChunkSize);
+              new BlobCacheHeadValue(blobReader.getVersion(), blobReader.getSize(), defaultChunkSize);
 
           cache.put(cacheHeadId, blobHead.toByteArray());
 
@@ -148,7 +148,7 @@ public class CachedBlobReaderImpl implements BlobReader {
   }
 
   @Override
-  public long position() {
+  public long getPosition() {
     return position;
   }
 
@@ -163,7 +163,7 @@ public class CachedBlobReaderImpl implements BlobReader {
       return 0;
     }
 
-    long calculatedLen = size() - position;
+    long calculatedLen = getSize() - position;
     if (len < calculatedLen) {
       calculatedLen = len;
     }
@@ -183,19 +183,19 @@ public class CachedBlobReaderImpl implements BlobReader {
   protected byte[] readChunkFromWrapped() {
     BlobReader lWrapped = getWrapped();
     BlobCacheHeadValue lBlobHeadValue = getBlobHeadValue();
-    if (lWrapped.version() != lBlobHeadValue.version) {
+    if (lWrapped.getVersion() != lBlobHeadValue.version) {
       throw new ConcurrentModificationException(
           "The blob " + blobId + " has been changed since the reading was started");
     }
 
     int currentChunkSize = lBlobHeadValue.chunkSize;
     long chunkStartPosition = (position / currentChunkSize) * currentChunkSize;
-    long wrappedPosition = lWrapped.position();
+    long wrappedPosition = lWrapped.getPosition();
     if (wrappedPosition != chunkStartPosition) {
       lWrapped.seek(chunkStartPosition);
     }
 
-    long remainingLenOfBlob = size() - chunkStartPosition;
+    long remainingLenOfBlob = getSize() - chunkStartPosition;
     if (currentChunkSize > remainingLenOfBlob) {
       currentChunkSize = (int) remainingLenOfBlob;
     }
@@ -252,20 +252,20 @@ public class CachedBlobReaderImpl implements BlobReader {
 
   @Override
   public void seek(final long pos) {
-    if (pos < 0 || pos > size()) {
-      throw new IndexOutOfBoundsException("Blob " + blobId + " with size " + size()
+    if (pos < 0 || pos > getSize()) {
+      throw new IndexOutOfBoundsException("Blob " + blobId + " with size " + getSize()
           + " cannot set position " + pos);
     }
     position = pos;
   }
 
   @Override
-  public long size() {
+  public long getSize() {
     return getBlobHeadValue().size;
   }
 
   @Override
-  public long version() {
+  public long getVersion() {
     return getBlobHeadValue().version;
   }
 
