@@ -19,7 +19,7 @@ import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAException;
 
 import org.apache.geronimo.transaction.manager.GeronimoTransactionManager;
-import org.everit.blobstore.api.Blobstore;
+import org.everit.blobstore.Blobstore;
 import org.everit.blobstore.mem.MemBlobstore;
 import org.everit.blobstore.testbase.AbstractBlobstoreTest;
 import org.everit.blobstore.testbase.BlobstoreStressAndConsistencyTester;

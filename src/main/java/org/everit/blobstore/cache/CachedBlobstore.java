@@ -22,9 +22,9 @@ import javax.transaction.Status;
 import javax.transaction.SystemException;
 import javax.transaction.TransactionManager;
 
-import org.everit.blobstore.api.BlobAccessor;
-import org.everit.blobstore.api.BlobReader;
-import org.everit.blobstore.api.Blobstore;
+import org.everit.blobstore.BlobAccessor;
+import org.everit.blobstore.BlobReader;
+import org.everit.blobstore.Blobstore;
 import org.everit.blobstore.cache.internal.CacheUpdaterBlobAccessor;
 import org.everit.blobstore.cache.internal.CachedBlobReaderImpl;
 import org.everit.blobstore.cache.internal.Codec7BitUtil;

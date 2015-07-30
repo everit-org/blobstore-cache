@@ -21,9 +21,9 @@ import java.util.Map;
 
 import javax.transaction.TransactionManager;
 
-import org.everit.blobstore.api.BlobReader;
-import org.everit.blobstore.api.Blobstore;
-import org.everit.blobstore.api.NoSuchBlobException;
+import org.everit.blobstore.BlobReader;
+import org.everit.blobstore.Blobstore;
+import org.everit.blobstore.NoSuchBlobException;
 import org.everit.osgi.transaction.helper.api.TransactionHelper;
 import org.everit.osgi.transaction.helper.internal.TransactionHelperImpl;
 

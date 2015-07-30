@@ -3,7 +3,7 @@ package org.everit.blobstore.cache.internal;
 import java.util.List;
 import java.util.Map;
 
-import org.everit.blobstore.api.BlobAccessor;
+import org.everit.blobstore.BlobAccessor;
 
 /**
  * Blob accessor that updates the cache during calling the close method.
