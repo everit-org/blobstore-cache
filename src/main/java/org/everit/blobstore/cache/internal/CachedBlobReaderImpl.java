@@ -111,7 +111,8 @@ public class CachedBlobReaderImpl implements BlobReader {
       transactionHelper.requiresNew(() -> {
         try (BlobReader blobReader = originalBlobstore.readBlobForUpdate(blobId)) {
           BlobCacheHeadValue blobHead =
-              new BlobCacheHeadValue(blobReader.getVersion(), blobReader.getSize(), defaultChunkSize);
+              new BlobCacheHeadValue(blobReader.getVersion(), blobReader.getSize(),
+                  defaultChunkSize);
 
           cache.put(cacheHeadId, blobHead.toByteArray());
 
@@ -126,6 +127,21 @@ public class CachedBlobReaderImpl implements BlobReader {
   @Override
   public long getBlobId() {
     return blobId;
+  }
+
+  @Override
+  public long getPosition() {
+    return position;
+  }
+
+  @Override
+  public long getSize() {
+    return getBlobHeadValue().size;
+  }
+
+  @Override
+  public long getVersion() {
+    return getBlobHeadValue().version;
   }
 
   /**
@@ -145,11 +161,6 @@ public class CachedBlobReaderImpl implements BlobReader {
       }
     }
     return wrapped;
-  }
-
-  @Override
-  public long getPosition() {
-    return position;
   }
 
   @Override
@@ -257,16 +268,6 @@ public class CachedBlobReaderImpl implements BlobReader {
           + " cannot set position " + pos);
     }
     position = pos;
-  }
-
-  @Override
-  public long getSize() {
-    return getBlobHeadValue().size;
-  }
-
-  @Override
-  public long getVersion() {
-    return getBlobHeadValue().version;
   }
 
 }
