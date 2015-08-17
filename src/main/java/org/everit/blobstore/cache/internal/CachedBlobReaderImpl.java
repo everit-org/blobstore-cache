@@ -24,8 +24,8 @@ import javax.transaction.TransactionManager;
 import org.everit.blobstore.BlobReader;
 import org.everit.blobstore.Blobstore;
 import org.everit.blobstore.NoSuchBlobException;
-import org.everit.osgi.transaction.helper.internal.JTATransactionPropagator;
 import org.everit.transaction.propagator.TransactionPropagator;
+import org.everit.transaction.propagator.jta.JTATransactionPropagator;
 
 /**
  * Cached version of the {@link BlobReader} interface that needs an actual persistent store

@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.everit.config</groupId>
     <artifactId>org.everit.config.oss</artifactId>
-    <version>7.0.0</version>
+    <version>7.0.1</version>
   </parent>
 
   <groupId>org.everit.blobstore</groupId>
@@ -79,6 +79,15 @@
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Import-Package>
+              org.everit.blobstore;version="[1.0,1.1)",
+              org.everit.transaction.propagator;version="[1.0,2)",
+              *
+            </Import-Package>
+          </instructions>
+        </configuration>
       </plugin>
     </plugins>
   </build>
@@ -91,8 +100,14 @@
     </dependency>
     <dependency>
       <groupId>org.everit.transaction</groupId>
-      <artifactId>org.everit.transaction.propagator.api</artifactId>
+      <artifactId>org.everit.transaction.propagator.jta</artifactId>
       <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-jta_1.1_spec</artifactId>
+      <version>1.1.1</version>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
@@ -123,12 +138,6 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
       <version>1.7.12</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.everit.transaction</groupId>
-      <artifactId>org.everit.transaction.propagator.jta</artifactId>
-      <version>1.0.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
