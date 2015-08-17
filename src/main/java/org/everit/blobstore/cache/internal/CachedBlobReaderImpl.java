@@ -77,7 +77,7 @@ public class CachedBlobReaderImpl implements BlobReader {
   private List<Byte> calculateChunkId() {
     long chunkIndex = (position / getBlobHeadValue().chunkSize);
     List<Byte> chunkId = Codec7BitUtil.toUnmodifiableList(Codec7BitUtil.encodeLongsTo7BitByteArray(
-        blobId, chunkIndex));
+        blobId, getVersion(), chunkIndex));
     return chunkId;
   }
 
