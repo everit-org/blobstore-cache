@@ -24,10 +24,10 @@ import org.everit.blobstore.mem.MemBlobstore;
 import org.everit.blobstore.testbase.AbstractBlobstoreTest;
 import org.everit.blobstore.testbase.BlobstoreStressAndConsistencyTester;
 import org.everit.blobstore.testbase.BlobstoreStressAndConsistencyTester.BlobstoreStressTestConfiguration;
-import org.everit.osgi.transaction.helper.api.TransactionHelper;
-import org.everit.osgi.transaction.helper.internal.TransactionHelperImpl;
+import org.everit.osgi.transaction.helper.internal.JTATransactionPropagator;
 import org.everit.transaction.map.managed.ManagedMap;
 import org.everit.transaction.map.readcommited.ReadCommitedTransactionalMap;
+import org.everit.transaction.propagator.TransactionPropagator;
 import org.everit.transaction.unchecked.xa.UncheckedXAException;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -53,10 +53,8 @@ public class CachedBlobstoreTest extends AbstractBlobstoreTest {
   }
 
   @Override
-  protected TransactionHelper getTransactionHelper() {
-    TransactionHelperImpl transactionHelperImpl = new TransactionHelperImpl();
-    transactionHelperImpl.setTransactionManager(transactionManager);
-    return transactionHelperImpl;
+  protected TransactionPropagator getTransactionPropagator() {
+    return new JTATransactionPropagator(transactionManager);
   }
 
   @Test
@@ -67,10 +65,11 @@ public class CachedBlobstoreTest extends AbstractBlobstoreTest {
 
     Blobstore memBlobstore = new MemBlobstore(transactionManager);
 
-    TransactionHelperImpl transactionHelper = new TransactionHelperImpl();
-    transactionHelper.setTransactionManager(transactionManager);
+    TransactionPropagator transactionPropagator = new JTATransactionPropagator(transactionManager);
 
-    BlobstoreStressAndConsistencyTester.runStressTest(new BlobstoreStressTestConfiguration(), transactionHelper,
+    BlobstoreStressTestConfiguration configuration = new BlobstoreStressTestConfiguration();
+    configuration.iterationNumPerThread = 10000;
+    BlobstoreStressAndConsistencyTester.runStressTest(configuration, transactionPropagator,
         cachedBlobstore, memBlobstore);
   }
 

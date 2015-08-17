@@ -24,8 +24,8 @@ import javax.transaction.TransactionManager;
 import org.everit.blobstore.BlobReader;
 import org.everit.blobstore.Blobstore;
 import org.everit.blobstore.NoSuchBlobException;
-import org.everit.osgi.transaction.helper.api.TransactionHelper;
-import org.everit.osgi.transaction.helper.internal.TransactionHelperImpl;
+import org.everit.osgi.transaction.helper.internal.JTATransactionPropagator;
+import org.everit.transaction.propagator.TransactionPropagator;
 
 /**
  * Cached version of the {@link BlobReader} interface that needs an actual persistent store
@@ -45,7 +45,7 @@ public class CachedBlobReaderImpl implements BlobReader {
 
   protected long position = 0;
 
-  protected final TransactionHelper transactionHelper;
+  protected final TransactionPropagator transactionPropagator;
 
   public boolean versionVerifiedFromWrapped = false;
 
@@ -70,9 +70,7 @@ public class CachedBlobReaderImpl implements BlobReader {
     this.originalBlobstore = originalBlobstore;
     this.cache = cache;
     this.defaultChunkSize = defaultChunkSize;
-    TransactionHelperImpl transactionHelperImpl = new TransactionHelperImpl();
-    transactionHelperImpl.setTransactionManager(transactionManager);
-    this.transactionHelper = transactionHelperImpl;
+    this.transactionPropagator = new JTATransactionPropagator(transactionManager);
     this.blobHeadValue = getBlobHeadValue();
   }
 
@@ -108,7 +106,7 @@ public class CachedBlobReaderImpl implements BlobReader {
     if (head != null) {
       this.blobHeadValue = BlobCacheHeadValue.fromByteArray(head);
     } else {
-      transactionHelper.requiresNew(() -> {
+      transactionPropagator.requiresNew(() -> {
         try (BlobReader blobReader = originalBlobstore.readBlobForUpdate(blobId)) {
           BlobCacheHeadValue blobHead =
               new BlobCacheHeadValue(blobReader.getVersion(), blobReader.getSize(),
