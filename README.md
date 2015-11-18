@@ -1,3 +1,3 @@
 # blobstore-cache
 
-Documentation: http://wwww.everit.org/blobstore-cache
+Documentation: http://www.everit.org/blobstore-cache
